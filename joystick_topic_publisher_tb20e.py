@@ -96,8 +96,8 @@ JOY_CTRL_ASSIN = {
     'blade+' : 'UP',
     'blade-' : 'DOWN',
     'body' : 'LEFT_STICK_X',
-    'swing+' : 'LEFT',
-    'swing-' : 'RIGHT',
+    'swing+' : 'RIGHT',
+    'swing-' : 'LEFT',
     'boom' : 'RIGHT_STICK_Y',
     'arm' : 'LEFT_STICK_Y',
     'bucket' : 'RIGHT_STICK_X',
@@ -123,17 +123,17 @@ THUMB_MAX_DEG = 140
 
 # 動作速度
 DRIVE_SPEED = 1
-BLADE_SPEED = 1
-BODY_SPEED = 1
-SWING_SPEED = 1
-BOOM_SPEED = 1
-ARM_SPEED = 1
-BUCKET_SPEED = 1
-THUMB_SPEED = 1
+BLADE_SPEED = 4
+BODY_SPEED = 4
+SWING_SPEED = 4
+BOOM_SPEED = 4
+ARM_SPEED = -4
+BUCKET_SPEED = 4
+THUMB_SPEED = 4
 
-JOY_AXE_THRESHOLD = 0.2 # アナログスティック入力のしきい値
+JOY_AXE_THRESHOLD = 0.3 # アナログスティック入力のしきい値
 
-UPDATE_INTERVAL = 0.1  # ジョイスティックの状態更新間隔[s]
+UPDATE_INTERVAL = 0.05  # ジョイスティックの状態更新間隔[s]
 HOST = 'localhost'  # ROS2ブリッジのホスト名またはIPアドレス
 PORT = 9090          # ROS2ブリッジのポート番号
 # ---------------------------------------------
@@ -235,18 +235,13 @@ class JoystickPublishManager:
                     self.blade_deg = BLADE_MIN_DEG
                 elif self.blade_deg >= BLADE_MAX_DEG:
                     self.blade_deg = BLADE_MAX_DEG
-                publisher.publish(math.radians(self.blade_deg)) # degをradに変換してpublish
+                publisher.publish({'data': math.radians(self.blade_deg)}) # degをradに変換してpublish
             # ボディ
             elif name == 'body':
                 axe = JOY_CTRL_ASSIN['body'] # 軸名
                 axe_key = JOY_MAP['JOY_AXE_MAP'][axe] # 軸キー
                 self.body_deg += self.s_axe[axe_key] * BODY_SPEED
-                # +-360度に直す
-                if self.body_deg <= -360:
-                    self.body_deg += 360
-                elif self.body_deg >= 360:
-                    self.blade_deg -= 360
-                publisher.publish(math.radians(self.body_deg))
+                publisher.publish({'data': math.radians(self.body_deg)})
             # スイング
             elif name == 'swing':
                 btn_plus = JOY_CTRL_ASSIN['swing+']
@@ -259,7 +254,7 @@ class JoystickPublishManager:
                     self.swing_deg = SWING_MIN_DEG
                 elif self.swing_deg >= SWING_MAX_DEG:
                     self.swing_deg = SWING_MAX_DEG
-                publisher.publish(math.radians(self.swing_deg))
+                publisher.publish({'data': math.radians(self.swing_deg)})
             # ブーム
             elif name == 'boom':
                 axe = JOY_CTRL_ASSIN['boom']
@@ -270,7 +265,7 @@ class JoystickPublishManager:
                     self.boom_deg = BOOM_MIN_DEG
                 elif self.boom_deg >= BOOM_MAX_DEG:
                     self.boom_deg = BOOM_MAX_DEG
-                publisher.publish(math.radians(self.boom_deg))
+                publisher.publish({'data': math.radians(self.boom_deg)})
             # アーム
             elif name == 'arm':
                 axe = JOY_CTRL_ASSIN['arm']
@@ -281,7 +276,7 @@ class JoystickPublishManager:
                     self.arm_deg = ARM_MIN_DEG
                 elif self.arm_deg >= ARM_MAX_DEG:
                     self.arm_deg = ARM_MAX_DEG
-                publisher.publish(math.radians(self.arm_deg))
+                publisher.publish({'data': math.radians(self.arm_deg)})
             # バケット
             elif name == 'bucket':
                 axe = JOY_CTRL_ASSIN['bucket']
@@ -292,7 +287,7 @@ class JoystickPublishManager:
                     self.bucket_deg = BUCKET_MIN_DEG
                 elif self.bucket_deg >= BUCKET_MAX_DEG:
                     self.bucket_deg = BUCKET_MAX_DEG
-                publisher.publish(math.radians(self.bucket_deg))
+                publisher.publish({'data': math.radians(self.bucket_deg)})
             # サム
             elif name == 'thumb':
                 btn_plus = JOY_CTRL_ASSIN['thumb+']
@@ -305,7 +300,7 @@ class JoystickPublishManager:
                     self.thumb_deg = THUMB_MIN_DEG
                 elif self.thumb_deg >= THUMB_MAX_DEG:
                     self.thumb_deg = THUMB_MAX_DEG
-                publisher.publish(math.radians(self.thumb_deg))
+                publisher.publish({'data': math.radians(self.thumb_deg)})
 
 
 def main():

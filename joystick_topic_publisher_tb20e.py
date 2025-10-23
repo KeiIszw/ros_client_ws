@@ -1,8 +1,3 @@
-# Copyright (c) 2021 Takenoshin
-# Released under the MIT license
-# https://opensource.org/licenses/mit-license.php
-# https://github.com/tak6uch1/joystick
-
 import time
 from decimal import Decimal
 import pygame
@@ -274,19 +269,19 @@ class JoystickPublishManager:
                     w = DRIVE_SPEED_ANGULAR
                 # 右方前進
                 elif left_plus_val == 1:
-                    v = DRIVE_SPEED_LINEAR
+                    v = DRIVE_SPEED_LINEAR / 2
                     w = -DRIVE_SPEED_ANGULAR
                 # 左方前進
                 elif right_plus_val == 1:
-                    v = DRIVE_SPEED_LINEAR
+                    v = DRIVE_SPEED_LINEAR / 2
                     w = DRIVE_SPEED_ANGULAR
                 # 右方後退
                 elif left_minus_val == 1:
-                    v = -DRIVE_SPEED_LINEAR
+                    v = -DRIVE_SPEED_LINEAR / 2
                     w = DRIVE_SPEED_ANGULAR
                 # 左方後退
                 elif right_minus_val == 1:
-                    v = -DRIVE_SPEED_LINEAR
+                    v = -DRIVE_SPEED_LINEAR / 2
                     w = -DRIVE_SPEED_ANGULAR
 
                 # publish

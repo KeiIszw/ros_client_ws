@@ -11,15 +11,18 @@ import math
 
 
 # ------------------ 定数定義 ------------------
+# 建機名
+EXCAVATOR_NAME = 'tb20e'
+
 # トピック名
-TOPIC_NAME_DRIVE = '/tb20e/tracks/cmd_vel'
-TOPIC_NAME_BLADE = '/tb20e/blade/cmd'
-TOPIC_NAME_BODY = '/tb20e/body/cmd'
-TOPIC_NAME_SWING = '/tb20e/swing/cmd'
-TOPIC_NAME_BOOM = '/tb20e/boom/cmd'
-TOPIC_NAME_ARM = '/tb20e/arm/cmd'
-TOPIC_NAME_BUCKET = '/tb20e/bucket/cmd'
-TOPIC_NAME_THUMB = '/tb20e/thumb/cmd'
+TOPIC_NAME_DRIVE = '/' + EXCAVATOR_NAME + '/tracks/cmd_vel'
+TOPIC_NAME_BLADE = '/' + EXCAVATOR_NAME + '/blade/cmd'
+TOPIC_NAME_BODY = '/' + EXCAVATOR_NAME + '/body/cmd'
+TOPIC_NAME_SWING = '/' + EXCAVATOR_NAME + '/swing/cmd'
+TOPIC_NAME_BOOM = '/' + EXCAVATOR_NAME + '/boom/cmd'
+TOPIC_NAME_ARM = '/' + EXCAVATOR_NAME + '/arm/cmd'
+TOPIC_NAME_BUCKET = '/' + EXCAVATOR_NAME + '/bucket/cmd'
+TOPIC_NAME_THUMB = '/' + EXCAVATOR_NAME + '/thumb/cmd'
 
 # トピック型
 TOPIC_TYPE_DRIVE = 'geometry_msgs/msg/Twist'
@@ -122,18 +125,19 @@ BUCKET_MAX_DEG = 100
 THUMB_MAX_DEG = 140
 
 # 動作速度
-DRIVE_SPEED = 1
-BLADE_SPEED = 4
-BODY_SPEED = 4
-SWING_SPEED = 4
-BOOM_SPEED = 4
-ARM_SPEED = -4
-BUCKET_SPEED = 4
-THUMB_SPEED = 4
+DRIVE_SPEED_LINEAR = 1
+DRIVE_SPEED_ANGULAR = 1
+BLADE_SPEED = 1
+BODY_SPEED = 1
+SWING_SPEED = 1
+BOOM_SPEED = 1
+ARM_SPEED = -1
+BUCKET_SPEED = 1
+THUMB_SPEED = 1
 
 JOY_AXE_THRESHOLD = 0.3 # アナログスティック入力のしきい値
 
-UPDATE_INTERVAL = 0.05  # ジョイスティックの状態更新間隔[s]
+UPDATE_INTERVAL = 0.02  # ジョイスティックの状態更新間隔[s]
 HOST = 'localhost'  # ROS2ブリッジのホスト名またはIPアドレス
 PORT = 9090          # ROS2ブリッジのポート番号
 # ---------------------------------------------
@@ -215,12 +219,79 @@ class JoystickPublishManager:
         ジョイスティックの状態に基づいて各種コマンドをpublishする
         """
         for name, publisher in self.publishers.items():
-            # msg = roslibpy.Message({'data': self.s_axe[JOY_MAP['JOY_AXE_MAP']['LEFT_STICK_X']]}) # 仮 driveはこれじゃだめ
-            # publisher.publish(msg)
 
             # クローラ
             if name == 'drive':
-                pass ############### 未実装 ###############
+                # 左プラス
+                axe_left_plus = JOY_CTRL_ASSIN['drive_l+']
+                axe_left_plus_key = JOY_MAP['JOY_AXE_MAP'][axe_left_plus]
+                # ZLは入力なしが-1, 入力ありが1なので, 0 or 1に直す
+                left_plus_val = 0
+                if self.s_axe[axe_left_plus_key] == 1:
+                    left_plus_val = 1
+                # 右プラス
+                axe_right_plus = JOY_CTRL_ASSIN['drive_r+']
+                axe_right_plus_key = JOY_MAP['JOY_AXE_MAP'][axe_right_plus]
+                # ZRは入力なしが-1, 入力ありが1なので, 0 or 1に直す
+                right_plus_val = 0
+                if self.s_axe[axe_right_plus_key] == 1:
+                    right_plus_val = 1
+                # 左マイナス
+                btn_left_minus = JOY_CTRL_ASSIN['drive_l-']
+                btn_left_minus_key = JOY_MAP['JOY_BTN_MAP'][btn_left_minus]
+                left_minus_val = self.s_btn[btn_left_minus_key]
+                # 右マイナス
+                btn_right_minus = JOY_CTRL_ASSIN['drive_r-']
+                btn_right_minus_key = JOY_MAP['JOY_BTN_MAP'][btn_right_minus]
+                right_minus_val = self.s_btn[btn_right_minus_key]
+                
+                # 移動の処理
+                v = 0 # 速度
+                w = 0 # 角速度
+                # 停止
+                if left_plus_val == 1 and left_minus_val == 1:
+                    v = 0
+                    w = 0
+                # 停止
+                elif right_plus_val == 1 and right_minus_val == 1:
+                    v = 0
+                    w = 0
+                # 前進
+                elif left_plus_val == 1 and right_plus_val == 1:
+                    v = DRIVE_SPEED_LINEAR
+                    w = 0
+                # 後退
+                elif left_minus_val == 1 and right_minus_val ==1:
+                    v = -DRIVE_SPEED_LINEAR
+                    w = 0
+                # 右旋回
+                elif left_plus_val == 1 and right_minus_val == 1:
+                    v = 0
+                    w = -DRIVE_SPEED_ANGULAR
+                # 左旋回
+                elif left_minus_val == 1 and right_plus_val == 1:
+                    v = 0
+                    w = DRIVE_SPEED_ANGULAR
+                # 右方前進
+                elif left_plus_val == 1:
+                    v = DRIVE_SPEED_LINEAR
+                    w = -DRIVE_SPEED_ANGULAR
+                # 左方前進
+                elif right_plus_val == 1:
+                    v = DRIVE_SPEED_LINEAR
+                    w = DRIVE_SPEED_ANGULAR
+                # 右方後退
+                elif left_minus_val == 1:
+                    v = -DRIVE_SPEED_LINEAR
+                    w = DRIVE_SPEED_ANGULAR
+                # 左方後退
+                elif right_minus_val == 1:
+                    v = -DRIVE_SPEED_LINEAR
+                    w = -DRIVE_SPEED_ANGULAR
+
+                # publish
+                msg = roslibpy.Message({'linear': {'x': v, 'y': 0.0, 'z': 0.0}, 'angular': {'x': 0.0, 'y': 0.0, 'z': w}})
+                publisher.publish(msg) # publish
             # ブレード
             elif name == 'blade':
                 # プラスボタン
@@ -235,13 +306,17 @@ class JoystickPublishManager:
                     self.blade_deg = BLADE_MIN_DEG
                 elif self.blade_deg >= BLADE_MAX_DEG:
                     self.blade_deg = BLADE_MAX_DEG
-                publisher.publish({'data': math.radians(self.blade_deg)}) # degをradに変換してpublish
+                # degをradに変換してpublish
+                msg = roslibpy.Message({'data': math.radians(self.blade_deg)})
+                publisher.publish(msg)
             # ボディ
             elif name == 'body':
                 axe = JOY_CTRL_ASSIN['body'] # 軸名
                 axe_key = JOY_MAP['JOY_AXE_MAP'][axe] # 軸キー
                 self.body_deg += self.s_axe[axe_key] * BODY_SPEED
-                publisher.publish({'data': math.radians(self.body_deg)})
+                # publish
+                msg = roslibpy.Message({'data': math.radians(self.body_deg)})
+                publisher.publish(msg)
             # スイング
             elif name == 'swing':
                 btn_plus = JOY_CTRL_ASSIN['swing+']
@@ -254,7 +329,9 @@ class JoystickPublishManager:
                     self.swing_deg = SWING_MIN_DEG
                 elif self.swing_deg >= SWING_MAX_DEG:
                     self.swing_deg = SWING_MAX_DEG
-                publisher.publish({'data': math.radians(self.swing_deg)})
+                # publish
+                msg = roslibpy.Message({'data': math.radians(self.swing_deg)})
+                publisher.publish(msg)
             # ブーム
             elif name == 'boom':
                 axe = JOY_CTRL_ASSIN['boom']
@@ -265,7 +342,9 @@ class JoystickPublishManager:
                     self.boom_deg = BOOM_MIN_DEG
                 elif self.boom_deg >= BOOM_MAX_DEG:
                     self.boom_deg = BOOM_MAX_DEG
-                publisher.publish({'data': math.radians(self.boom_deg)})
+                # publish
+                msg = roslibpy.Message({'data': math.radians(self.boom_deg)})
+                publisher.publish(msg)
             # アーム
             elif name == 'arm':
                 axe = JOY_CTRL_ASSIN['arm']
@@ -276,7 +355,9 @@ class JoystickPublishManager:
                     self.arm_deg = ARM_MIN_DEG
                 elif self.arm_deg >= ARM_MAX_DEG:
                     self.arm_deg = ARM_MAX_DEG
-                publisher.publish({'data': math.radians(self.arm_deg)})
+                # publish
+                msg = roslibpy.Message({'data': math.radians(self.arm_deg)})
+                publisher.publish(msg)
             # バケット
             elif name == 'bucket':
                 axe = JOY_CTRL_ASSIN['bucket']
@@ -287,7 +368,9 @@ class JoystickPublishManager:
                     self.bucket_deg = BUCKET_MIN_DEG
                 elif self.bucket_deg >= BUCKET_MAX_DEG:
                     self.bucket_deg = BUCKET_MAX_DEG
-                publisher.publish({'data': math.radians(self.bucket_deg)})
+                # publish
+                msg = roslibpy.Message({'data': math.radians(self.bucket_deg)})
+                publisher.publish(msg)
             # サム
             elif name == 'thumb':
                 btn_plus = JOY_CTRL_ASSIN['thumb+']
@@ -300,7 +383,9 @@ class JoystickPublishManager:
                     self.thumb_deg = THUMB_MIN_DEG
                 elif self.thumb_deg >= THUMB_MAX_DEG:
                     self.thumb_deg = THUMB_MAX_DEG
-                publisher.publish({'data': math.radians(self.thumb_deg)})
+                # publish
+                msg = roslibpy.Message({'data': math.radians(self.thumb_deg)})
+                publisher.publish(msg)
 
 
 def main():
